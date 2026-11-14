@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  apiKey: "AIza...",
-  authDomain: "goa-trip-planner-xxxx.firebaseapp.com",
-  projectId: "goa-trip-planner-xxxx",
-  storageBucket: "goa-trip-planner-xxxx.firebasestorage.app",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
+  apiKey: "AIzaSyAbwDM5Y7YgykX20Jq_lhwiI5vTcJ0tKck",
+  authDomain: "goa-trip-planner-8d983.firebaseapp.com",
+  projectId: "goa-trip-planner-8d983",
+  storageBucket: "goa-trip-planner-8d983.firebasestorage.app",
+  messagingSenderId: "894825577898",
+  appId: "1:894825577898:web:3d333ed8c5e1f0777f3fd3"
 };
