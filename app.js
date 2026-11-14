@@ -1,9 +1,12 @@
 import { cloud } from './cloud.js';
 
-var LS='tripPlanner.v1', LSV='tripPlanner.view';
+var SHARE=(new URLSearchParams(location.search).get('share')||'').replace(/[^A-Za-z0-9]/g,'').slice(0,40)||null;
+var LS='tripPlanner.v1', LSV=SHARE?'tripPlanner.viewShared':'tripPlanner.view';
+var shareOwner='', shareGone=false, shareLoaded=false;
+if(SHARE)document.documentElement.classList.add('ro');
 var S={v:1,trip:{name:'Goa Trip',start:'',end:''},trains:[],stays:[],days:{},notes:'',savedAt:0};
 var unsynced=false;
-try{var L=JSON.parse(localStorage.getItem(LS)||'null');if(L&&L.savedAt>(S.savedAt||0)){S=L;unsynced=true;}}catch(e){}
+if(!SHARE){try{var L=JSON.parse(localStorage.getItem(LS)||'null');if(L&&L.savedAt>(S.savedAt||0)){S=L;unsynced=true;}}catch(e){}}
 S.trains=S.trains||[];S.stays=S.stays||[];S.days=S.days||{};S.trip=S.trip||{name:'Goa Trip'};
 var DEFSET={mode:'scooty',rent:400,fuel:2.5,cabKm:25,cabMin:200,busKm:2,busMin:10};S.settings=Object.assign({},DEFSET,S.settings||{});
 var user=null, authReady=false, saving=false, timer=null, cloudErr='', pending=false;
@@ -93,14 +96,23 @@ function routeLink(date){var d=day(date),st=startOf(date),pts=d.places.filter(ha
 /* ---------- saving (localStorage + Firebase) ---------- */
 function normalise(o){o.trains=o.trains||[];o.stays=o.stays||[];o.days=o.days||{};o.trip=o.trip||{name:'Goa Trip'};o.settings=Object.assign({},DEFSET,o.settings||{});return o}
 function keepView(){try{localStorage.setItem(LSV,JSON.stringify(ui))}catch(e){}}
-function save(){S.savedAt=Date.now();try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}unsynced=true;render();clearTimeout(timer);timer=setTimeout(push,600)}
+function save(){if(SHARE){toast('This is a view-only link');render();return}S.savedAt=Date.now();try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}unsynced=true;render();clearTimeout(timer);timer=setTimeout(push,600)}
 function push(){if(!user||!cloud.ready){render();return}
  try{cloud.save(user.uid,S).catch(function(e){cloudErr=(e&&e.code)||'error';console.error(e);toast('Cloud save failed ('+cloudErr+') — kept on this device');render()})}catch(e){cloudErr='error';console.error(e)}
+ if(S.share&&S.share.on){try{cloud.saveShare(S.share.id,user.uid,user.displayName||'',publicCopy()).catch(function(e){console.error('share',e);toast('Couldn’t update the share link ('+((e&&e.code)||'error')+')')})}catch(e){console.error(e)}}
  unsynced=false;render()}
 function onRemote(remote,pend){pending=!!pend;cloudErr='';if(!remote){if(S.savedAt)push();else render();return}remote=normalise(remote);
  if((remote.savedAt||0)>(S.savedAt||0)){S=remote;unsynced=false;try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}render()}
  else if((remote.savedAt||0)<(S.savedAt||0))push();else{unsynced=false;render()}}
-function initSync(){if(!cloud.ready){authReady=true;render();return}
+function publicCopy(){var c=JSON.parse(JSON.stringify(S)),show=S.share&&S.share.showRefs;delete c.share;c.notes='';
+ if(!show){c.trains.forEach(function(t){delete t.pnr;delete t.seat;delete t.note});c.stays.forEach(function(x){delete x.ref;delete x.phone;delete x.note})}return c}
+function shareLink(){return location.origin+location.pathname+'?share='+S.share.id}
+function newId(){var a='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789',out='',r=new Uint8Array(20);crypto.getRandomValues(r);for(var i=0;i<20;i++)out+=a[r[i]%a.length];return out}
+function startShare(){if(!user){toast('Sign in first to create a share link');return}S.share={id:(S.share&&S.share.id)||newId(),on:true,showRefs:!!(S.share&&S.share.showRefs)};save();toast('View-only link created')}
+function stopShare(){if(!S.share)return;var id=S.share.id;S.share.on=false;S.share.id=newId();save();if(user&&cloud.ready)cloud.deleteShare(id).then(function(){toast('Link turned off — the old link no longer works')},function(e){toast('Couldn’t turn off the link ('+((e&&e.code)||'error')+')')})}
+function initViewer(){if(!cloud.ready){shareGone=true;shareLoaded=true;render();return}
+ cloud.watchShare(SHARE,function(d){shareLoaded=true;if(!d){shareGone=true;render();return}shareGone=false;S=normalise(d.state);shareOwner=d.ownerName||'';render()},function(e){shareLoaded=true;shareGone=true;console.error(e);render()})}
+function initSync(){if(SHARE)return initViewer();if(!cloud.ready){authReady=true;render();return}
  cloud.onAuth(function(u){user=u;authReady=true;if(unsub){unsub();unsub=null}if(u)unsub=cloud.watch(u.uid,onRemote,function(e){cloudErr=(e&&e.code)||'error';render()});render()})}
 var unsub=null;
 function signIn(){cloud.signIn().catch(function(e){if(e&&e.code!=='auth/popup-closed-by-user')toast('Sign-in failed: '+((e&&e.code)||e))})}
@@ -160,9 +172,10 @@ function editCosts(){var c=S.settings;form('Getting around',[{k:'mode',label:'De
 
 /* ---------- views ---------- */
 var IC={today:'<path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.3 6.3 4.9 4.9M19.1 19.1l-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/><circle cx="12" cy="12" r="4"/>',days:'<path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3zM9 3v15M15 6v15"/>',travel:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l2-4M16 21l-2-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>',stays:'<path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6"/>',more:'<path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>'};
-function nav(){var t=[['today','Today'],['days','Itinerary'],['travel','Trains'],['stays','Hostels'],['more','Notes']];
+function nav(){var t=[['today','Today'],['days','Itinerary'],['travel','Trains'],['stays','Hostels'],['more',SHARE?'About':'Notes']];
  return'<nav class="bottom"><div class="wrap">'+t.map(function(x){return'<button data-nav="'+x[0]+'" class="'+(ui.view===x[0]?'on':'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[x[0]]+'</svg>'+x[1]+'</button>'}).join('')+'</div></nav>'}
 function header(){var t=S.trip,sub=t.start?fd(t.start)+' → '+fd(t.end)+' · '+tripDays().length+' days':'Set your trip dates to begin';
+ if(SHARE)return'<header class="top"><div class="wrap"><h1>'+esc(shareGone?'Trip not available':(t.name||'Goa Trip'))+'</h1><p>'+esc(shareGone?'':shareLoaded?sub:'Loading…')+'</p><span class="sync"><i class="dot"></i>👀 '+esc(shareOwner?shareOwner.split(' ')[0]+'’s trip':'Shared trip')+' · view-only · updates live</span></div></header>';
  var st=!cloud.ready?['warn','Saved on this device only — add your Firebase config to sync']:!authReady?['busy','Connecting…']:!user?['warn','Not signed in · saved on this device']:cloudErr?['warn','Cloud error: '+cloudErr]:(unsynced||pending)?['busy',navigator.onLine===false?'Offline · saved on this device, syncs when back online':'Syncing…']:['','Synced · '+(user.displayName||user.email||'you')];
  var act=cloud.ready&&authReady&&!user?' · <button data-signin style="text-decoration:underline;font-weight:700">Sign in with Google</button>':'';
  return'<header class="top"><div class="wrap"><h1>'+esc(t.name||'Goa Trip')+'</h1><p>'+esc(sub)+'</p><span class="sync"><i class="dot '+st[0]+'"></i>'+esc(st[1])+act+'</span></div></header>'}
@@ -224,20 +237,35 @@ function vTravel(){var tr=sortedTrains();return'<div class="sec"><h2>Trains & tr
 function vStays(){var s=S.stays.slice().sort(function(a,b){return(a.checkIn||'9').localeCompare(b.checkIn||'9')});
  var gaps=tripDays().slice(0,-1).filter(function(dt){return!S.stays.some(function(x){return x.checkIn<=dt&&dt<x.checkOut})});
  return'<div class="sec"><h2>Hostels & stays</h2><button class="btn sun sm" data-addstay>＋ Add</button></div>'+(gaps.length&&S.stays.length?'<div class="hint" style="margin-bottom:12px">No stay booked for the night of '+gaps.map(function(g){return esc(fd(g))}).join(', ')+'.</div>':'')+(s.length?s.map(stayCard).join(''):'<div class="card empty">No stays yet. Add each hostel with its check-in/out dates — each day’s route starts from the hostel you’re in that night.</div>')}
+function shareCard(){var h='<div class="sec"><h2>Share my trip</h2></div><div class="card">';
+ if(!cloud.ready||!user)return h+'<p class="small muted" style="margin:0">Sign in with Google to create a view-only link for friends & family.</p></div>';
+ if(!S.share||!S.share.on)return h+'<p class="small muted" style="margin-top:0">Create a link anyone can open — no sign-in needed. They see your itinerary, trains and hostels live, but can’t edit. Your notes are never shared.</p><button class="btn sun" data-sharestart>🔗 Create view-only link</button></div>';
+ var L=shareLink();
+ return h+'<div class="small muted">Anyone with this link can view your trip:</div><input readonly value="'+esc(L)+'" onclick="this.select()" style="margin:6px 0 10px;font-size:13px">'+
+  '<div class="row"><button class="btn sm" data-sharecopy>Copy link</button><a class="btn sm ghost" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('My Goa trip plan (live): '+L)+'">Send on WhatsApp</a></div>'+
+  '<div class="row" style="justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><div class="small"><b>PNRs & booking refs</b><div class="muted">'+(S.share.showRefs?'Visible on the link':'Hidden from the link')+'</div></div><button class="btn sm line" data-sharerefs>'+(S.share.showRefs?'Hide':'Show')+'</button></div>'+
+  '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn sm danger" data-sharestop>Turn off link</button></div></div>'}
 function vMore(){return'<div class="sec"><h2>Notes</h2></div><div class="card"><textarea id="notes" style="min-height:160px" placeholder="Packing list, emergency numbers, scooter rental, budget…">'+esc(S.notes||'')+'</textarea><div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn sm" data-savenotes>Save notes</button></div></div>'+
- '<div class="sec"><h2>Trip</h2></div><div class="card row" style="justify-content:space-between"><div><b>'+esc(S.trip.name)+'</b><div class="small muted">'+(S.trip.start?esc(fd(S.trip.start,true))+' → '+esc(fd(S.trip.end,true)):'No dates')+'</div></div><button class="btn line sm" data-trip>Edit</button></div>'+
+ shareCard()+'<div class="sec"><h2>Trip</h2></div><div class="card row" style="justify-content:space-between"><div><b>'+esc(S.trip.name)+'</b><div class="small muted">'+(S.trip.start?esc(fd(S.trip.start,true))+' → '+esc(fd(S.trip.end,true)):'No dates')+'</div></div><button class="btn line sm" data-trip>Edit</button></div>'+
  '<div class="sec"><h2>Getting around</h2></div><div class="card row" style="justify-content:space-between"><div><b>'+MODES[S.settings.mode].ic+' '+MODES[S.settings.mode].label+'</b><div class="small muted">Scooty '+rs(S.settings.rent)+'/day + '+rs(S.settings.fuel)+'/km petrol · Cab '+rs(S.settings.cabKm)+'/km (min '+rs(S.settings.cabMin)+')</div></div><button class="btn line sm" data-costs>Edit</button></div>'+(user?'<div class="sec"><h2>Account</h2></div><div class="card row" style="justify-content:space-between"><div><b>'+esc(user.displayName||'Signed in')+'</b><div class="small muted">'+esc(user.email||'')+' · plan stored in Firebase</div></div><button class="btn line sm" data-signout>Sign out</button></div>':'')+'<div class="sec"><h2>Backup</h2></div><div class="card"><p class="small muted" style="margin-top:0">Copy your whole plan as text (to keep in WhatsApp/notes), or paste a backup to restore it.</p><div class="row"><button class="btn ghost sm" data-copy>Copy backup</button><button class="btn line sm" data-restore>Restore from backup</button></div></div>'}
 
-function render(){var app=$('#app'),sx=window.scrollY;var v={today:vToday,days:vDays,travel:vTravel,stays:vStays,more:vMore}[ui.view]||vToday;
+function vAbout(){return'<div class="sec"><h2>About this link</h2></div><div class="card"><p style="margin-top:0">You’re viewing '+esc(shareOwner||'someone')+'’s trip plan. It updates live whenever they change it, and it’s read-only.</p><p class="small muted">Want your own planner? Open <a href="'+esc(location.origin+location.pathname)+'">'+esc(location.host+location.pathname)+'</a> and sign in with Google.</p></div>'}
+function vGone(){return'<div class="card empty"><h2>This link isn’t active</h2><p>The owner may have turned sharing off, or the link is incomplete. Ask them to send it again.</p></div>'}
+function render(){var app=$('#app'),sx=window.scrollY;var v={today:vToday,days:vDays,travel:vTravel,stays:vStays,more:SHARE?vAbout:vMore}[ui.view]||vToday;if(SHARE&&(shareGone||!shareLoaded))v=shareGone?vGone:function(){return'<div class="card empty">Loading trip…</div>'};
  var ta=$('#notes'),draft=ta?ta.value:null;
  app.innerHTML=header()+'<main class="wrap">'+v()+'</main>'+nav();if(draft!=null&&$('#notes'))$('#notes').value=draft;window.scrollTo(0,sx)}
 
 document.addEventListener('click',function(e){var b=e.target.closest('button,[data-train],[data-stay],[data-edit],a');if(!b||b.closest('.modal-bg'))return;if(b.tagName==='A')return;var ds=b.dataset;
+ if(SHARE&&!(ds.nav||ds.pick))return;
  if(ds.nav){ui.view=ds.nav;keepView();try{history.replaceState(null,'','#'+ds.nav)}catch(x){}render();window.scrollTo(0,0);return}
  if(ds.signin!=null){signIn();return}
  if(ds.signout!=null){cloud.signOut().then(function(){toast('Signed out — the plan stays on this device')});return}
  if(ds.trip!=null)return editTrip();
  if(ds.costs!=null)return editCosts();
+ if(ds.sharestart!=null)return startShare();
+ if(ds.sharestop!=null){if(b.dataset.sure){stopShare()}else{b.dataset.sure=1;b.textContent='Tap again to turn off'}return}
+ if(ds.sharerefs!=null){S.share.showRefs=!S.share.showRefs;save();toast(S.share.showRefs?'PNRs & booking details now visible on the link':'PNRs & booking details hidden');return}
+ if(ds.sharecopy!=null){var L2=shareLink();Promise.resolve().then(function(){return navigator.clipboard.writeText(L2)}).then(function(){toast('Link copied')},function(){toast('Select the link above and copy it')});return}
  if(ds.addtrain!=null)return editTrain();
  if(ds.addstay!=null)return editStay();
  if(ds.train)return editTrain(S.trains.filter(function(x){return x.id===ds.train})[0]);

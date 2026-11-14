@@ -54,3 +54,5 @@ svg.map{width:100%;height:auto;background:#eaf4f3;border-radius:12px;display:blo
 .big{font-family:Fraunces,serif;font-size:34px;line-height:1}
 .modes{display:flex;gap:6px;background:#f6efe2;padding:4px;border-radius:12px}.modes button{flex:1;padding:8px 6px;border-radius:9px;font-weight:700;font-size:13px;color:var(--muted)}.modes button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .hint{background:var(--sun2);border-radius:12px;padding:10px 12px;font-size:13px;color:#7a3414}
+.ro .acts button,.ro [data-add],.ro [data-opt],.ro [data-editday],.ro .modes,.ro [data-addtrain],.ro [data-addstay],.ro [data-trip],.ro .place .name span,.ro .hint{display:none!important}
+.ro [data-train],.ro [data-stay],.ro .place .name{cursor:default!important}

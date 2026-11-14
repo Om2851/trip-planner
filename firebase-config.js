@@ -1,3 +1,6 @@
+// Firebase web config for goa-trip-planner-8d983.
+// These values are NOT secrets: they identify the project. Data is protected by
+// the Firestore security rules (firestore.rules).
 export const firebaseConfig = {
   apiKey: "AIzaSyAbwDM5Y7YgykX20Jq_lhwiI5vTcJ0tKck",
   authDomain: "goa-trip-planner-8d983.firebaseapp.com",

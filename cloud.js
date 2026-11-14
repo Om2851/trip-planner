@@ -50,6 +50,16 @@ if (configured) {
         savedAt: state.savedAt || Date.now(),
         updatedAt: F.serverTimestamp(),
       }),
+      // Public, read-only copy of a plan for the "Share my trip" link.
+      saveShare: (id, uid, ownerName, state) => F.setDoc(F.doc(db, 'shares', id), {
+        owner: uid, ownerName, state: JSON.stringify(state), updatedAt: F.serverTimestamp(),
+      }),
+      deleteShare: (id) => F.deleteDoc(F.doc(db, 'shares', id)),
+      watchShare: (id, onData, onError) => F.onSnapshot(F.doc(db, 'shares', id), (snap) => {
+        if (!snap.exists()) return onData(null);
+        const d = snap.data();
+        try { onData({ state: JSON.parse(d.state), ownerName: d.ownerName }); } catch (e) { onData(null); }
+      }, onError),
       watch: (uid, onData, onError) => F.onSnapshot(ref(uid), { includeMetadataChanges: true }, (snap) => {
         let data = null;
         if (snap.exists()) {

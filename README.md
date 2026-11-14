@@ -14,6 +14,7 @@ Static site on **GitHub Pages**, data in **Firebase Firestore**, sign-in with **
 - **Trains & hostels.** PNR, seat, check-in/out dates. Warns about nights with no stay booked.
 - **Cloud sync.** One Firestore document per user. Changes from your laptop show up live on your phone.
 - **Offline.** Firestore's offline cache plus a service worker, so the plan opens and is editable with no signal and syncs when you're back online.
+- **Share my trip.** A view-only link (`?share=<random id>`) that anyone can open without signing in. It updates live, hides PNRs, booking refs and notes by default, and can be turned off at any time.
 - **Safety checks.** Pins outside Goa are rejected (catches "copied my current location" mistakes).
 
 ## Architecture
@@ -24,10 +25,12 @@ style.css             → all styling
 app.js                → UI, state, route optimiser, cost model (no Firebase code)
 cloud.js              → the ONLY file that talks to Firebase (auth + Firestore)
 firebase-config.js    → your project's public config
-firestore.rules       → security rules: each user can only read/write planners/{their uid}
+firestore.rules       → security rules: private planners/{uid}; public-by-id, owner-write shares/{id}
 sw.js                 → offline cache for the app shell
 manifest.webmanifest  → "Add to Home Screen" metadata
 ```
+
+**Sharing model:** when sharing is on, every save also writes a cleaned copy of the plan (no notes, and no PNRs or booking refs unless you turn them on) to `shares/{randomId}`. The rules allow anyone to `get` that one document by its 20-character id, but not to `list` other shares, and only the owner can write or delete it. Turning sharing off deletes the document and rotates the id, so the old link stops working.
 
 **Sync model:** the whole plan is one JSON object with a `savedAt` timestamp. Every edit is saved to `localStorage` straight away, then written to `planners/{uid}` in Firestore after a short pause (600 ms). A live `onSnapshot` listener pulls changes from other devices, and the copy with the newer `savedAt` wins. Because `cloud.js` is a small interface (`onAuth`, `signIn`, `signOut`, `save`, `watch`), you could swap Firebase for Supabase or your own API by rewriting that one file.
 
