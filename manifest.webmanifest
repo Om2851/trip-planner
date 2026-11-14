@@ -1,6 +1,7 @@
 {
-  "name": "Goa Trip Planner",
-  "short_name": "Goa Trip",
+  "name": "Yatri — trip planner",
+  "short_name": "Yatri",
+  "description": "Plan together, pack smart, split fair.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

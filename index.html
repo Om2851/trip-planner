@@ -3,25 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Goa Trip Planner</title>
+  <title>Yatri — plan together, pack smart, split fair</title>
+  <meta name="description" content="Yatri is a trip planner for solo travellers and groups: day plans with the best route, PackYourBag checklists, group chat and shared expenses.">
   <meta name="theme-color" content="#0f5b66">
-  <meta name="description" content="Trains, hostels and a route-optimised day-by-day itinerary for a Goa trip.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Goa Trip">
+  <meta name="apple-mobile-web-app-title" content="Yatri">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app"><p style="padding:24px;font-family:sans-serif">Loading your trip…</p></div>
-  <script type="module" src="app.js"></script>
+  <div id="app"><div style="min-height:80vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#0f5b66">Loading Yatri…</div></div>
+  <script type="module" src="js/main.js"></script>
   <script>
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW', e); });
-    }
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW', e); });
   </script>
 </body>
 </html>

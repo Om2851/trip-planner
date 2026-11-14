@@ -56,3 +56,83 @@ svg.map{width:100%;height:auto;background:#eaf4f3;border-radius:12px;display:blo
 .hint{background:var(--sun2);border-radius:12px;padding:10px 12px;font-size:13px;color:#7a3414}
 .ro .acts button,.ro [data-add],.ro [data-opt],.ro [data-editday],.ro .modes,.ro [data-addtrain],.ro [data-addstay],.ro [data-trip],.ro .place .name span,.ro .hint{display:none!important}
 .ro [data-train],.ro [data-stay],.ro .place .name{cursor:default!important}
+
+/* ================= Yatri additions ================= */
+.brand{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:22px;letter-spacing:-.02em;color:#fff}
+.brand:before{content:"";display:inline-block;width:.8em;height:.8em;border-radius:50%;background:radial-gradient(circle at 40% 40%,#f6a04d,#e2622b);margin-right:.3em;vertical-align:-.05em}
+.big-brand{font-size:34px}
+header.top.home h1{font-size:30px}
+header.top.trip h1{font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.top .back,header.top .gear{color:#fff;text-decoration:none;font-size:26px;line-height:1;padding:2px 10px 6px 0;opacity:.9}
+header.top .gear{font-size:22px;padding:4px 0 4px 10px}
+header.top .gear.on{opacity:1;text-shadow:0 0 12px #f6a04d}
+.avbtn{padding:0;border-radius:50%}
+.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:700;flex:0 0 auto;border:2px solid rgba(255,255,255,.85)}
+.avs{display:flex;align-items:center}.avs .av{margin-right:-6px}
+nav.bottom a{display:flex;flex-direction:column;align-items:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 8px;border-radius:10px;min-width:58px;text-decoration:none;position:relative}
+nav.bottom a svg{width:22px;height:22px;margin-bottom:2px}
+nav.bottom a.on{color:var(--teal);background:var(--teal2)}
+.badge{position:absolute;top:2px;right:10px;background:var(--sun);color:#fff;font-style:normal;font-size:10px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.pill.live{background:#dcf0e4;color:var(--ok)}.pill.muted{background:#eee;color:#777}
+.tripcard{display:block;text-decoration:none;color:inherit;transition:transform .1s}.tripcard:active{transform:scale(.99)}
+.tripcard h3{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint-card{border-color:#f3c9b3;background:#fff8f3}
+/* welcome */
+.welcome .hero{background:linear-gradient(160deg,#0f5b66 0%,#14303a 70%);color:#fff;padding:36px 0 40px;position:relative;overflow:hidden}
+.welcome .hero:after{content:"";position:absolute;right:-90px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,#f6a04d 0%,#e2622b 55%,transparent 56%);opacity:.9}
+.welcome .hero .wrap{position:relative;z-index:1}
+.welcome h1{font-size:40px;line-height:1.05;margin:26px 0 12px}
+.welcome .hero p{opacity:.88;max-width:460px}
+.btn.google{background:#fff;color:#1f1f1f;padding:12px 18px;font-size:15px;margin-top:18px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.invite-banner{background:rgba(246,160,77,.2);border:1px solid rgba(246,160,77,.6);padding:10px 12px;border-radius:12px;margin-top:14px;font-weight:700}
+.features{padding-top:18px}
+.feat{display:flex;gap:14px;align-items:flex-start}.feat p{margin:4px 0 0}.fi{font-size:28px;line-height:1}
+.splash{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:6px}
+.splash .brand{color:var(--teal)}
+/* inputs */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 11px;font-size:13px;font-weight:600}
+.chips button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.seg{display:inline-flex;background:#f6efe2;padding:3px;border-radius:11px;gap:3px}
+.seg button{padding:6px 12px;border-radius:9px;font-weight:700;font-size:13px;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chosen{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-weight:700}
+.pp-out{max-height:260px;overflow:auto;margin-top:6px}
+.cb{display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;color:var(--ink);font-weight:600;letter-spacing:0;margin:0;flex:1}
+.cb input{width:18px;height:18px;margin:0}
+/* progress */
+.bar{height:10px;background:#efe6d6;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#0f5b66,#2f8f5b);border-radius:99px}
+.bar.thin{height:6px}.bar.over i{background:linear-gradient(90deg,#e2622b,#b3261e)}
+.ring{--p:0;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--ok) calc(var(--p)*1%),#efe6d6 0);display:flex;align-items:center;justify-content:center}
+.ring span{width:50px;height:50px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+/* packing */
+.check{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #f3ecdf}
+.check:first-of-type{border-top:0}
+.box{flex:0 0 26px;height:26px;border-radius:8px;border:2px solid #cfc3ad;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;background:#fff}
+.box.on{background:var(--ok);border-color:var(--ok)}.box:disabled{opacity:.5}
+.lbl{flex:1;cursor:pointer}.check.done .lbl{text-decoration:line-through;opacity:.55}
+/* money */
+.pos{color:var(--ok)}.neg{color:#b3261e}
+.exp{display:flex;gap:12px;align-items:center;cursor:pointer;padding:12px 14px;margin-bottom:8px}
+.eic{font-size:22px;width:38px;height:38px;border-radius:12px;background:#f6efe2;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.settle-row{background:#f4faf6}
+.catrow{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}.catrow span{width:120px}
+.settle{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f3ecdf}
+.splitrow{margin:6px 0;gap:10px}.splitrow .exact{width:110px}.splitrow .share{width:80px;text-align:right}
+.mode-equal .exact{display:none}.mode-exact .share{display:none}
+/* chat */
+.chatmain{padding-bottom:70px}
+.chat{display:flex;flex-direction:column;gap:2px;padding:6px 0 10px}
+.chat-day{align-self:center;font-size:12px;font-weight:700;color:var(--muted);background:#efe6d6;padding:3px 10px;border-radius:99px;margin:12px 0 6px}
+.msg{display:flex;flex-direction:column;align-items:flex-start;margin-top:8px;max-width:82%}
+.msg.cont{margin-top:2px}.msg.me{align-self:flex-end;align-items:flex-end}
+.msg .who{font-size:12px;font-weight:700;margin:0 0 2px 10px}
+.bubble{background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:16px 16px 16px 4px;word-wrap:break-word;overflow-wrap:anywhere}
+.msg.me .bubble{background:var(--teal);color:#fff;border-color:var(--teal);border-radius:16px 16px 4px 16px;cursor:pointer}
+.bubble .t{font-size:10px;opacity:.6;margin-left:8px;white-space:nowrap}
+.composer{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:15;display:flex;gap:8px;padding:8px 12px;background:var(--sand);border-top:1px solid var(--line);max-width:720px;margin:0 auto}
+.composer textarea{min-height:42px;height:42px;resize:none;border-radius:21px;padding:10px 14px}
+.composer .btn{border-radius:50%;width:42px;height:42px;padding:0;font-size:16px;flex:0 0 auto}
+/* read-only (view-only link) */
+.ro .acts button,.ro [data-act="addPlaces"],.ro [data-act="optimise"],.ro [data-act="editDay"],.ro .modes,.ro .place .name span,.ro .hint{display:none!important}
+.ro .place .name{cursor:default}
