@@ -1,8 +1,8 @@
 // Network-first: always try the latest files; use the saved copy only when offline.
 // Bump VERSION when you deploy changes.
-const VERSION = 'yatri-v1';
+const VERSION = 'yatri-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'firebase-config.js', 'icons/icon-192.png',
-  'js/main.js', 'js/store.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js',
+  'js/main.js', 'js/store.js', 'js/art.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js',
   'js/views/plan.js', 'js/views/bookings.js', 'js/views/bag.js', 'js/views/money.js', 'js/views/chat.js', 'js/views/settings.js', 'js/views/trips.js'];
 
 self.addEventListener('install', (e) => {

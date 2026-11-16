@@ -4,6 +4,7 @@ import { cloud } from '../cloud.js';
 import { esc, fd, form, toast, confirmTap, copyText, randId, avatar, money } from '../ui.js';
 import * as G from '../geo.js';
 import { tripForm } from './trips.js';
+import { coverHtml, sceneSvg, sceneFor, SCENE_KEYS, sceneLabel, compressImage } from '../art.js';
 
 const base = () => location.origin + location.pathname;
 export const inviteLink = (code) => base() + '?join=' + code;
@@ -14,6 +15,14 @@ export function vSettings() {
   const t = T(); const me = myId(); const owner = t.ownerId === me; const mem = membersOf(); const s = settingsOf();
   let h = `<div class="sec"><h2>Trip</h2><button class="btn line sm" data-act="editTrip">Edit</button></div><div class="card">
     <h3 style="font-size:20px">${esc(t.name)}</h3><div class="small muted">${t.destination ? '📍 ' + esc(t.destination.name) + ' · ' : ''}${t.start ? esc(fd(t.start, true)) + ' → ' + esc(fd(t.end, true)) : 'No dates yet'} · ${esc(t.currency || 'INR')}${t.budget ? ' · budget ' + esc(money(t.budget, t.currency)) : ''}</div></div>`;
+
+  // look & feel
+  const auto = !t.theme;
+  h += `<div class="sec"><h2>Look & feel</h2></div><div class="card"><div class="lf-preview">${coverHtml(t)}</div>
+    <div class="tiny muted" style="margin:12px 0 6px">SCENE</div><div class="scene-picks">
+      <button data-act="setTheme" data-k="" class="${auto ? 'on' : ''}"><div>${sceneSvg(sceneFor({ ...t, theme: '' , cover: null }))}</div><span>✨ Auto</span></button>
+      ${SCENE_KEYS.map((k) => `<button data-act="setTheme" data-k="${k}" class="${t.theme === k ? 'on' : ''}"><div>${sceneSvg(k)}</div><span>${sceneLabel(k)}</span></button>`).join('')}</div>
+    <div class="row" style="margin-top:12px"><label class="btn ghost sm" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--teal)">📷 ${t.cover ? 'Change' : 'Use my own'} cover photo<input type="file" accept="image/*" data-cover hidden></label>${t.cover ? '<button class="btn sm line" data-act="removeCover">Remove photo</button>' : ''}</div></div>`;
 
   // members + invite
   h += `<div class="sec"><h2>${isGroup() ? 'Travellers' : 'Travelling with friends?'}</h2></div><div class="card">`;
@@ -51,6 +60,13 @@ export function vSettings() {
 }
 
 /* ---------- actions ---------- */
+actions.setTheme = (el) => patchTrip([['theme', el.dataset.k || '']]);
+actions.removeCover = () => patchTrip([['cover', '']]);
+document.addEventListener('change', async (e) => {
+  const inp = e.target.closest && e.target.closest('[data-cover]'); if (!inp || !inp.files || !inp.files[0]) return;
+  try { toast('Preparing photo…'); const data = await compressImage(inp.files[0]); patchTrip([['cover', data]]); toast('Cover photo updated'); }
+  catch (err) { toast(err.message || 'Couldn’t use that photo'); }
+});
 actions.openSettings = () => { location.hash = '#/trip/' + st.tripId + '/trip'; };
 actions.editTrip = () => tripForm(T());
 actions.copy = (el) => copyText(el.dataset.v);
@@ -101,7 +117,7 @@ actions.deleteTrip = (el) => {
 
 // A cleaned, public copy of the plan for the view-only link.
 export function publicCopy(t) {
-  const c = JSON.parse(JSON.stringify({ name: t.name, destination: t.destination || null, start: t.start || '', end: t.end || '', currency: t.currency || 'INR', trains: t.trains || {}, stays: t.stays || {}, days: t.days || {}, settings: t.settings || {}, members: t.members || [], memberInfo: t.memberInfo || {}, ownerId: t.ownerId }));
+  const c = JSON.parse(JSON.stringify({ theme: t.theme || '', cover: t.cover || '', vibes: t.vibes || [], name: t.name, destination: t.destination || null, start: t.start || '', end: t.end || '', currency: t.currency || 'INR', trains: t.trains || {}, stays: t.stays || {}, days: t.days || {}, settings: t.settings || {}, members: t.members || [], memberInfo: t.memberInfo || {}, ownerId: t.ownerId }));
   if (!(t.share && t.share.showRefs)) {
     Object.values(c.trains).forEach((x) => { delete x.pnr; delete x.seat; delete x.note; });
     Object.values(c.stays).forEach((x) => { delete x.ref; delete x.phone; delete x.note; });

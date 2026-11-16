@@ -2,6 +2,7 @@
 import { st, actions, rerender, T, readOnly, tripDays, dayOf, startOf, staysOf, settingsOf, patchTrip } from '../store.js';
 import { esc, fd, ft, todayIso, toast, form, modal, closeModal } from '../ui.js';
 import * as G from '../geo.js';
+import { sceneSvg, sceneFor } from '../art.js';
 
 const FAR_KM = 400;
 const patch = patchTrip;
@@ -12,7 +13,7 @@ function dayMode(date) { const d = dayOf(date); const s = settingsOf(); return G
 export function vPlan() {
   const days = tripDays();
   if (!days.length) {
-    return `<div class="card empty"><h2>When are you going?</h2><p>Add your trip dates to start planning each day.</p>${readOnly() ? '' : '<button class="btn sun" data-act="editTrip">Set trip dates</button>'}</div>`;
+    return `<div class="card empty-hero"><div class="eh-art">${sceneSvg(sceneFor(T()))}</div><h2>When are you going?</h2><p>Add your trip dates to start planning each day.</p>${readOnly() ? '' : '<button class="btn sun" data-act="editTrip">Set trip dates</button>'}</div>`;
   }
   const today = todayIso();
   if (!st.day || !days.includes(st.day)) st.day = days.includes(today) ? today : days[0];

@@ -4,6 +4,7 @@ import { cloud } from '../cloud.js';
 import { esc, fd, fdShort, todayIso, daysBetween, modal, closeModal, toast, randId, CURRENCIES, avatar, firstName } from '../ui.js';
 import * as G from '../geo.js';
 import { VIBES } from './bag.js';
+import { coverHtml, sceneSvg } from '../art.js';
 
 function tripStatus(t) {
   const today = todayIso();
@@ -17,14 +18,14 @@ export function vHome() {
   const trips = st.trips.slice().sort((a, b) => (a.start || '9').localeCompare(b.start || '9'));
   const today = todayIso();
   const upcoming = trips.filter((t) => !t.end || t.end >= today), past = trips.filter((t) => t.end && t.end < today).reverse();
-  let h = `<header class="top home"><div class="wrap"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div class="brand">${APP_NAME}</div><button class="avbtn" data-act="account">${avatar({ uid: myId(), name: myName() }, 34)}</button></div>
+  let h = `<header class="top home">${sceneSvg('sunset', 'hdr-art')}<div class="hdr-shade"></div><div class="wrap"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div class="brand">${APP_NAME}</div><button class="avbtn" data-act="account">${avatar({ uid: myId(), name: myName() }, 34)}</button></div>
     <h1 style="margin-top:14px">Hi ${esc(firstName(myName()))} 👋</h1><p>Where to next?</p></div></header><main class="wrap">`;
   let imported = false; try { imported = !!localStorage.getItem('yatri.legacyImported.' + myId()); } catch (e) { /* */ }
   if (st.legacy && !imported) {
     h += `<div class="card hint-card"><b>Bring over your earlier plan?</b><div class="small muted" style="margin:4px 0 10px">We found “${esc((st.legacy.trip && st.legacy.trip.name) || 'Goa Trip')}” from the first version of the planner.</div><div class="row"><button class="btn sun sm" data-act="importLegacy">Import it</button><button class="btn line sm" data-act="dismissLegacy">No thanks</button></div></div>`;
   }
   if (!st.tripsReady) h += '<div class="card empty">Loading your trips…</div>';
-  else if (!trips.length) h += `<div class="card" style="text-align:center;padding:28px 16px"><div style="font-size:48px">🧳</div><h2>Plan your first trip</h2><p class="muted">Add where you’re going and when. Then invite friends, build your packing list and track spending — all in one place.</p><button class="btn sun" data-act="newTrip">＋ New trip</button></div>`;
+  else if (!trips.length) h += `<div class="card empty-hero"><div class="eh-art">${sceneSvg('mountains')}</div><h2>Plan your first trip</h2><p class="muted">Add where you’re going and when. Then invite friends, build your packing list and track spending — all in one place.</p><button class="btn sun" data-act="newTrip">＋ New trip</button></div>`;
   else {
     h += `<div class="sec"><h2>Your trips</h2><button class="btn sun sm" data-act="newTrip">＋ New trip</button></div>`;
     h += upcoming.map(tripCard).join('') || '<div class="card empty">No upcoming trips.</div>';
@@ -34,8 +35,8 @@ export function vHome() {
 }
 function tripCard(t) {
   const s = tripStatus(t); const mem = membersOf(t);
-  return `<a class="card tripcard" href="#/trip/${t.id}/plan"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><h3>${esc(t.name || 'Trip')}</h3><div class="small muted">${t.destination ? '📍 ' + esc(t.destination.name) : ''}${t.start ? ' · ' + esc(fdShort(t.start)) + ' – ' + esc(fdShort(t.end)) : ''}</div></div><span class="pill ${s.cls}">${esc(s.label)}</span></div>
-    <div class="row" style="margin-top:10px;justify-content:space-between"><div class="avs">${mem.slice(0, 5).map((m) => avatar(m, 26)).join('')}${mem.length > 5 ? `<span class="tiny muted">+${mem.length - 5}</span>` : ''}</div><span class="tiny muted">${mem.length > 1 ? mem.length + ' travellers' : 'Solo'}</span></div></a>`;
+  return `<a class="card tripcard" href="#/trip/${t.id}/plan"><div class="tc-art">${coverHtml(t)}<span class="pill tc-pill ${s.cls}">${esc(s.label)}</span></div><div class="tc-body"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><h3>${esc(t.name || 'Trip')}</h3><div class="small muted">${t.destination ? '📍 ' + esc(t.destination.name) : ''}${t.start ? ' · ' + esc(fdShort(t.start)) + ' – ' + esc(fdShort(t.end)) : ''}</div></div></div>
+    <div class="row" style="margin-top:10px;justify-content:space-between"><div class="avs">${mem.slice(0, 5).map((m) => avatar(m, 26)).join('')}${mem.length > 5 ? `<span class="tiny muted">+${mem.length - 5}</span>` : ''}</div><span class="tiny muted">${mem.length > 1 ? mem.length + ' travellers' : 'Solo'}</span></div></div></a>`;
 }
 
 /* ---------- create / edit trip ---------- */

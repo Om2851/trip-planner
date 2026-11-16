@@ -9,6 +9,7 @@ import { vMoney } from './views/money.js';
 import { vChat, chatAfterRender, unreadCount } from './views/chat.js';
 import { vSettings, publicCopy } from './views/settings.js';
 import { vHome } from './views/trips.js';
+import { coverHtml, sceneSvg } from './art.js';
 
 /* ---------- errors ---------- */
 const FRIENDLY = {
@@ -107,15 +108,14 @@ function nav(items) {
 function tripHeader(t) {
   const mem = membersOf(t);
   const status = !navigator.onLine ? '<span class="sync"><i class="dot warn"></i>Offline · changes sync later</span>' : st.pending ? '<span class="sync"><i class="dot busy"></i>Saving…</span>' : '';
-  return `<header class="top trip"><div class="wrap"><div class="row" style="flex-wrap:nowrap;align-items:flex-start">
-    ${st.shareId ? '' : '<a class="back" href="#/" aria-label="All trips">‹</a>'}
-    <div style="flex:1;min-width:0"><h1>${esc(t.name || 'Trip')}</h1><p>${t.destination ? '📍 ' + esc(t.destination.name) : ''}${t.start ? ' · ' + esc(fdShort(t.start)) + ' – ' + esc(fdShort(t.end)) : ''}</p></div>
-    ${st.shareId ? '' : `<a class="gear ${st.view === 'trip' ? 'on' : ''}" href="#/trip/${st.tripId}/trip" aria-label="Trip settings">⚙︎</a>`}</div>
-    <div class="row" style="margin-top:10px;justify-content:space-between"><div class="avs">${mem.slice(0, 6).map((m) => avatar(m, 26)).join('')}</div>
-    ${st.shareId ? `<span class="sync"><i class="dot"></i>👀 ${esc(st.sharedOwner ? st.sharedOwner.split(' ')[0] + '’s trip' : 'Shared trip')} · view-only · live</span>` : status}</div></div></header>`;
+  return `<header class="top trip">${coverHtml(t, 'hdr-art')}<div class="hdr-shade"></div><div class="wrap hdr-in">
+    <div class="hdr-bar">${st.shareId ? '<span></span>' : '<a class="back" href="#/" aria-label="All trips">‹</a>'}
+    ${st.shareId ? `<span class="sync"><i class="dot"></i>👀 ${esc(st.sharedOwner ? st.sharedOwner.split(' ')[0] + '’s trip' : 'Shared trip')} · view-only · live</span>` : `<a class="gear ${st.view === 'trip' ? 'on' : ''}" href="#/trip/${st.tripId}/trip" aria-label="Trip settings">⚙︎</a>`}</div>
+    <div><h1>${esc(t.name || 'Trip')}</h1><p>${t.destination ? '📍 ' + esc(t.destination.name) : ''}${t.start ? ' · ' + esc(fdShort(t.start)) + ' – ' + esc(fdShort(t.end)) : ''}</p>
+    <div class="row" style="margin-top:10px;justify-content:space-between"><div class="avs">${mem.slice(0, 6).map((m) => avatar(m, 28)).join('')}</div>${st.shareId ? '' : status}</div></div></div></header>`;
 }
 function welcome() {
-  return `<div class="welcome"><div class="hero"><div class="wrap">
+  return `<div class="welcome"><div class="hero">${sceneSvg('beach', 'hero-art')}<div class="hdr-shade"></div><div class="wrap">
       <div class="brand big-brand">${APP_NAME}</div>
       <h1>Plan together.<br>Pack smart.<br>Split fair.</h1>
       <p>One app for the whole trip — day plans with the best route, a packing list that thinks for you, group chat and shared expenses.</p>
@@ -130,11 +130,12 @@ function welcome() {
     ['💸', 'Split expenses', 'Anyone adds what they paid, split equally or exactly. Yatri shows who owes whom — and the fewest payments to settle up.'],
     ['🚆', 'Bookings in one place', 'Trains, buses, flights and stays with PNRs and check-in dates, ready when you need them.'],
     ['📴', 'Works offline', 'Install it on your phone. Your plan opens with no signal and syncs when you’re back online.']]
-    .map(([i, t, d]) => `<div class="card feat"><div class="fi">${i}</div><div><b>${t}</b><p class="small muted">${d}</p></div></div>`).join('')}
+    .map(([i, t, d], k) => `<div class="card feat"><div class="fi f${k}">${i}</div><div><b>${t}</b><p class="small muted">${d}</p></div></div>`).join('')}
+      <div class="gallery">${['mountains', 'city', 'desert', 'forest'].map((k) => `<div class="g-item">${sceneSvg(k)}<span>${{ mountains: 'Hills', city: 'Cities', desert: 'Deserts', forest: 'Forests' }[k]}</span></div>`).join('')}</div>
       <p class="tiny muted" style="text-align:center;margin:20px 0 40px">${APP_NAME} — made for travellers. Place search & road data © OpenStreetMap contributors.</p>
     </main></div>`;
 }
-const splash = (msg) => `<div class="splash"><div class="brand big-brand">${APP_NAME}</div><p>${esc(msg)}</p></div>`;
+const splash = (msg) => `<div class="splash"><div class="splash-art">${sceneSvg('sunset')}</div><div class="brand big-brand">${APP_NAME}</div><p>${esc(msg)}</p></div>`;
 
 function page() {
   if (st.shareId) {

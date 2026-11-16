@@ -4,6 +4,7 @@
 import { st, actions, rerender, T, myId, membersOf, isGroup, memberName, tripDays, patchTrip } from '../store.js';
 import { cloud } from '../cloud.js';
 import { esc, form, modal, closeModal, toast, confirmTap, firstName, avatar } from '../ui.js';
+import { sceneSvg, sceneFor } from '../art.js';
 
 export const VIBES = [
   ['beach', '🏖️ Beach'], ['mountains', '🏔️ Hills / cold'], ['trek', '🥾 Trekking'], ['city', '🏙️ City'],
@@ -56,7 +57,7 @@ export function vBag() {
   const items = st.packing.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   const group = isGroup();
   if (!items.length) {
-    return `<div class="card" style="text-align:center"><div style="font-size:42px">🎒</div><h2>PackYourBag</h2><p class="muted">Get a ready-made checklist for this trip — based on how many days you’re away and what kind of trip it is. ${group ? 'Shared things (first-aid kit, speaker…) can be claimed by one person so nobody doubles up.' : ''}</p><button class="btn sun" data-act="suggestBag">✨ Build my packing list</button><div style="margin-top:10px"><button class="btn line sm" data-act="addBagItem">Or add items yourself</button></div></div>`;
+    return `<div class="card empty-hero"><div class="eh-art">${sceneSvg(sceneFor(T()))}</div><div style="font-size:40px;margin-top:-30px;position:relative">🎒</div><h2 style="margin-top:4px">PackYourBag</h2><p class="muted">Get a ready-made checklist for this trip — based on how many days you’re away and what kind of trip it is. ${group ? 'Shared things (first-aid kit, speaker…) can be claimed by one person so nobody doubles up.' : ''}</p><button class="btn sun" data-act="suggestBag">✨ Build my packing list</button><div style="margin-top:10px;padding-bottom:4px"><button class="btn line sm" data-act="addBagItem">Or add items yourself</button></div></div>`;
   }
   const mine = items.filter(isMine); const done = mine.filter(isPacked).length;
   const pct = mine.length ? Math.round(done / mine.length * 100) : 0;
