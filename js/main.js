@@ -174,7 +174,7 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el || el.closest('.modal-bg') || el.disabled) return;
   const name = el.dataset.act;
-  if (st.shareId && name !== 'pickDay') return;
+  if (st.shareId && name !== 'pickDay' && name !== 'checkPnr') return;
   if (el.tagName === 'A') e.preventDefault();
   const fn = actions[name]; if (fn) fn(el, e);
 });
