@@ -47,7 +47,7 @@ export const staysOf = (trip) => Object.entries((trip || T()).stays || {}).map((
   .sort((a, b) => (a.checkIn || '9').localeCompare(b.checkIn || '9'));
 export const dayOf = (date, trip) => {
   const d = ((trip || T()).days || {})[date] || {};
-  return { title: d.title || '', startId: d.startId || '', mode: d.mode || '', round: d.round !== false, places: (d.places || []).slice() };
+  return { title: d.title || '', startId: d.startId || '', mode: d.mode || '', round: d.round !== false, startTime: d.startTime || '09:00', places: (d.places || []).slice() };
 };
 export function stayFor(date, trip) {
   const ss = staysOf(trip);

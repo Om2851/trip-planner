@@ -190,3 +190,82 @@ export function bindPlacePicker(root, { bias, onPick, esc }) {
   out.addEventListener('click', (e) => { const b = e.target.closest('[data-pp-i]'); if (!b) return; onPick(results[+b.dataset.ppI], b); });
 }
 export const placePickerHtml = (ph) => `<div class="row" style="flex-wrap:nowrap"><input data-pp-q placeholder="${ph || 'Search a place, or paste a Google Maps link'}" autocomplete="off"><button type="button" class="btn sm" data-pp-go>Search</button></div><div data-pp-out class="pp-out"></div>`;
+
+/* ---------- time-aware day planning ---------- */
+// Times are minutes after midnight. A place can have:
+//   due  — "be there at" time (e.g. sunset 17:30). Arriving early means waiting
+//          until LEAD minutes before it; arriving after it counts as late.
+//   stay — minutes spent there (default 60).
+export const LEAD = 15;
+export const toMin = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+export const fromMin = (x) => { x = ((Math.round(x) % 1440) + 1440) % 1440; return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0'); };
+
+// order: place indexes 1..n; travel(i, j): minutes between indexes (0 = stay)
+export function simulate(order, travel, info, startMin, round, hasBase) {
+  let t = startMin, prev = hasBase ? 0 : null, late = 0, wait = 0, lateStops = 0;
+  const stops = [];
+  for (const k of order) {
+    const tr = prev == null ? 0 : travel(prev, k);
+    const arrive = t + tr; let start = arrive; let w = 0, l = 0;
+    const due = info[k].due;
+    if (due != null) {
+      if (arrive < due - LEAD) { w = due - LEAD - arrive; start = due - LEAD; }
+      if (arrive > due) { l = arrive - due; lateStops++; }
+    }
+    const leave = start + info[k].stay;
+    stops[k] = { arrive, start, leave, wait: w, late: l, travel: tr };
+    late += l; wait += w; t = leave; prev = k;
+  }
+  const back = round && hasBase && order.length ? travel(prev, 0) : 0;
+  return { stops, end: t + back, back, late, wait, lateStops };
+}
+// Lower is better: finish as early as possible, and being late is very costly.
+const score = (r) => r.end + 40 * r.late;
+
+export function bestTimedOrder(n, travel, info, startMin, round, hasBase) {
+  const idx = []; for (let i = 1; i <= n; i++) idx.push(i);
+  if (n < 2) return idx;
+  const run = (o) => score(simulate(o, travel, info, startMin, round, hasBase));
+  if (n <= 8) {
+    let best = idx, bestS = Infinity; const used = []; const cur = [];
+    (function dfs() {
+      if (cur.length === n) { const s = run(cur); if (s < bestS) { bestS = s; best = cur.slice(); } return; }
+      for (let i = 1; i <= n; i++) { if (used[i]) continue; used[i] = 1; cur.push(i); dfs(); cur.pop(); used[i] = 0; }
+    })();
+    return best;
+  }
+  // larger days: start from "timed stops sorted by time, others by nearest", then improve with 2-opt + moves
+  let o = idx.slice().sort((a, b) => (info[a].due ?? 1e9) - (info[b].due ?? 1e9));
+  let s = run(o), improved = true, guard = 0;
+  while (improved && guard++ < 60) {
+    improved = false;
+    for (let a = 0; a < n - 1; a++) for (let b = a + 1; b < n; b++) {
+      const c1 = o.slice(0, a).concat(o.slice(a, b + 1).reverse(), o.slice(b + 1)); const s1 = run(c1);
+      if (s1 < s - 1e-9) { o = c1; s = s1; improved = true; continue; }
+      const c2 = o.slice(); const [x] = c2.splice(a, 1); c2.splice(b, 0, x); const s2 = run(c2);
+      if (s2 < s - 1e-9) { o = c2; s = s2; improved = true; }
+    }
+  }
+  return o;
+}
+
+/* ---------- sunrise / sunset (NOAA algorithm) ---------- */
+// Returns "HH:MM" in the device's time zone for that date, or '' (polar day/night).
+export function sunTime(dateIso, lat, lng, rising) {
+  const [Y, Mo, D] = dateIso.split('-').map(Number);
+  const N = Math.floor((Date.UTC(Y, Mo - 1, D) - Date.UTC(Y, 0, 0)) / 864e5);
+  const rad = Math.PI / 180, lngHour = lng / 15;
+  const t = N + ((rising ? 6 : 18) - lngHour) / 24;
+  const M = 0.9856 * t - 3.289;
+  let L = M + 1.916 * Math.sin(M * rad) + 0.020 * Math.sin(2 * M * rad) + 282.634; L = ((L % 360) + 360) % 360;
+  let RA = Math.atan(0.91764 * Math.tan(L * rad)) / rad; RA = ((RA % 360) + 360) % 360;
+  RA += Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90; RA /= 15;
+  const sinDec = 0.39782 * Math.sin(L * rad), cosDec = Math.cos(Math.asin(sinDec));
+  const cosH = (Math.cos(90.833 * rad) - sinDec * Math.sin(lat * rad)) / (cosDec * Math.cos(lat * rad));
+  if (cosH > 1 || cosH < -1) return '';
+  let H = rising ? 360 - Math.acos(cosH) / rad : Math.acos(cosH) / rad; H /= 15;
+  const T = H + RA - 0.06571 * t - 6.622;
+  const UT = ((T - lngHour) % 24 + 24) % 24;
+  const offset = -new Date(Y, Mo - 1, D, 12).getTimezoneOffset() / 60;
+  return fromMin((UT + offset) * 60);
+}
