@@ -1,6 +1,6 @@
 // Itinerary: day strip, route-optimised day plan with real road distances.
 import { st, actions, rerender, T, readOnly, tripDays, dayOf, startOf, staysOf, settingsOf, patchTrip } from '../store.js';
-import { esc, fd, ft, todayIso, toast, form, modal, closeModal } from '../ui.js';
+import { esc, fd, ft, todayIso, toast, form, modal, closeModal, animateIn } from '../ui.js';
 import * as G from '../geo.js';
 import { sceneSvg, sceneFor } from '../art.js';
 
@@ -32,16 +32,17 @@ export function vPlan() {
     const c = dayOf(dt).places.length;
     return `<button data-act="pickDay" data-d="${dt}" class="${dt === st.day ? 'on' : ''}"><b>${dt === today ? 'Today' : 'Day ' + (i + 1)}</b><span>${esc(fd(dt))}${c ? ' · ' + c : ''}</span></button>`;
   }).join('')}</div>`;
-  return strip + dayPlan(st.day) + (readOnly() ? '' : '<div class="hint">Tip: give places with a fixed time a <b>“Be there at”</b> time (tap a place → Edit, or 🌅 for sunset). “Optimise route” then plans the whole day so you reach them on time and fills the gaps with other stops.</div>');
+  return strip + dayPlan(st.day) + (readOnly() ? '' : '<div class="hint tip">Tip: give places with a fixed time a <b>“Be there at”</b> time (tap a place → Edit, or 🌅 for sunset). “Optimise route” then plans the whole day so you reach them on time and fills the gaps with other stops.</div>');
 }
 
 function timeLine(p, s) {
-  if (!s) return p.time ? `<div class="tline"><span class="tbad">⏰ be there at ${esc(ft(p.time))}</span></div>` : '';
-  let h = `<div class="tline">🕐 ${hhmm(s.start)} – ${hhmm(s.leave)}`;
-  if (p.time) h += s.late ? ` <span class="tbad late">⚠ ~${G.fm(s.late)} late for ${esc(ft(p.time))}</span>` : ` <span class="tbad ok">⏰ ${esc(ft(p.time))} ✓</span>`;
-  if (s.wait >= 20) h += ` <span class="tiny muted">· ☕ ${G.fm(s.wait)} free before</span>`;
-  return h + '</div>';
+  let h = '';
+  if (p.time) h += !s ? `<span class="tbad">⏰ be there at ${esc(ft(p.time))}</span>` : s.late ? `<span class="tbad late">⚠ ~${G.fm(s.late)} late for ${esc(ft(p.time))}</span>` : `<span class="tbad ok">⏰ ${esc(ft(p.time))} ✓</span>`;
+  if (s && s.wait >= 20) h += ` <span class="tbad free">☕ ${G.fm(s.wait)} free before</span>`;
+  return h ? `<div class="tline">${h}</div>` : '';
 }
+// "9:06" with a small "am" — for the timeline's time column
+const tcol = (m) => { const t = ft(G.fromMin(m)).split(' '); return `${t[0]}<small>${t[1] || ''}</small>`; };
 
 function dayPlan(date) {
   const trip = T(); const d = dayOf(date); const st0 = startOf(date); const base = G.hasLL(st0) ? st0 : null;
@@ -84,36 +85,42 @@ function dayPlan(date) {
     if (pts.length) h += `<div style="margin-top:12px">${G.mapSvg(base, pts, d.round)}</div>`;
     h += `<div class="row" style="margin-top:12px">${pts.length >= 2 ? `<button class="btn sun" data-act="optimise" data-d="${date}">✨ Optimise route</button>` : ''}${pts.length && mode !== 'bus' ? `<a class="btn ghost" target="_blank" rel="noopener" href="${G.routeLink(base, pts, d.round, mode)}">🧭 Full route in Maps</a>` : ''}</div>`;
   }
-  h += '</div><div class="card">';
+  h += '</div>'; // end of summary card
+  const side = h; h = '';
+
+  // ---------- timeline ----------
   const stayName = st0 ? esc(st0.name) : 'No stay for this day';
-  const staySub = st0 ? (base ? 'Leave at ' + hhmm(startMin) + (d.round ? ' · finish here' : '') : 'Add this stay’s location (Bookings) to plan the route') : 'Add a stay in Bookings, or pick one in “Edit day”';
-  h += `<div class="place"><div class="num home">⌂</div><div class="body"><div class="name">${stayName}</div><div class="small muted">${staySub}</div></div></div>`;
+  const staySub = st0 ? (base ? (d.round ? 'Start & finish here' : 'Start here') : 'Add this stay’s location (Bookings) to plan the route') : 'Add a stay in Bookings, or pick one in “Edit day”';
+  const legRow = (l, a, b) => `<div class="leg"><span class="leg-pill">${l.ic} ${l.real ? '' : '~'}${G.fk(l.km)} · ${G.fm(l.min)}${l.cost ? ' · ' + fmtC(l.cost) : l.walk ? ' · walk' : ''}</span><a target="_blank" rel="noopener" href="${G.legLink(a, b, l.walk ? 'walk' : mode)}">route ↗</a></div>`;
+  h += `<div class="card tl-card"><div class="tl">`;
+  h += `<div class="place tl-home"><div class="tl-time">${base ? tcol(startMin) : ''}</div><div class="num home">⌂</div><div class="body"><div class="name">${stayName}</div><div class="small muted">${staySub}</div></div></div>`;
   prev = base; prevI = 0;
   d.places.forEach((p, i) => {
-    if (prev && G.hasLL(p)) {
-      const l = G.leg(M, prevI, ix.get(p), prev, p, mode, set);
-      h += `<div class="leg">↓ ${l.ic} ${l.real ? '' : '~'}${G.fk(l.km)} · ~${G.fm(l.min)}${l.cost ? ' · ~' + fmtC(l.cost) : l.walk ? ' · walk' : ''} · <a target="_blank" rel="noopener" href="${G.legLink(prev, p, l.walk ? 'walk' : mode)}">route ↗</a></div>`;
-    } else h += '<div class="leg">↓</div>';
-    h += `<div class="place ${p.done ? 'done' : ''}"><div class="num ${G.hasLL(p) ? '' : 'nill'}">${i + 1}</div><div class="body"><div class="name" data-act="editPlace" data-d="${date}" data-i="${i}">${esc(p.name)} <span class="tiny muted" style="font-weight:400">✎</span></div>`
-      + timeLine(p, stopOf.get(p))
+    if (prev && G.hasLL(p)) h += legRow(G.leg(M, prevI, ix.get(p), prev, p, mode, set), prev, p);
+    else h += '<div class="leg"></div>';
+    const s0 = stopOf.get(p); const flash = st.flash === date + ':' + i ? ' pop' : '';
+    h += `<div class="place ${p.done ? 'done' : ''} ${p.time ? 'timed' : ''}"><div class="tl-time">${s0 ? tcol(s0.start) + `<span class="till">→ ${esc(ft(G.fromMin(s0.leave)).split(' ')[0])}</span>` : ''}</div><div class="num ${G.hasLL(p) ? '' : 'nill'}">${p.done ? '✓' : i + 1}</div><div class="body stop">`
+      + `<div class="name" data-act="editPlace" data-d="${date}" data-i="${i}">${esc(p.name)} <span class="edit-ic">✎</span></div>`
+      + timeLine(p, s0)
       + (p.note ? `<div class="small muted">${esc(p.note)}</div>` : '')
-      + (G.hasLL(p) ? '' : '<div class="tiny" style="color:#a8431a">No location — tap Edit to add one</div>')
-      + `<div class="acts"><button class="icon ${p.done ? 'on' : ''}" data-act="toggleDone" data-d="${date}" data-i="${i}">${p.done ? '✓ Visited' : '○ Visited'}</button><button class="icon" data-act="move" data-d="${date}" data-i="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}>↑</button><button class="icon" data-act="move" data-d="${date}" data-i="${i}" data-dir="1" ${i === d.places.length - 1 ? 'disabled' : ''}>↓</button><button class="icon" data-act="editPlace" data-d="${date}" data-i="${i}">✎ Edit</button><a class="icon" style="text-decoration:none" target="_blank" rel="noopener" href="${G.placeLink(p)}">Map ↗</a></div></div></div>`;
+      + (G.hasLL(p) ? '' : '<div class="tiny warn-txt">No location — tap Edit to add one</div>')
+      + `<div class="acts"><button class="icon ${p.done ? 'on' : ''}${flash}" data-act="toggleDone" data-d="${date}" data-i="${i}">${p.done ? '✓ Visited' : '○ Visited'}</button><button class="icon" data-act="move" data-d="${date}" data-i="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button><button class="icon" data-act="move" data-d="${date}" data-i="${i}" data-dir="1" ${i === d.places.length - 1 ? 'disabled' : ''} aria-label="Move down">↓</button><button class="icon" data-act="editPlace" data-d="${date}" data-i="${i}" title="Edit">✎</button><a class="icon" target="_blank" rel="noopener" href="${G.placeLink(p)}" title="Open in Maps" aria-label="Open in Maps">📍</a></div></div></div>`;
     if (G.hasLL(p)) { prev = p; prevI = ix.get(p); }
   });
   if (base && d.round && prev && prev !== base) {
-    const l = G.leg(M, prevI, 0, prev, base, mode, set);
-    h += `<div class="leg">↓ ${l.ic} ${l.real ? '' : '~'}${G.fk(l.km)} · ~${G.fm(l.min)}${l.cost ? ' · ~' + fmtC(l.cost) : ''} · <a target="_blank" rel="noopener" href="${G.legLink(prev, base, l.walk ? 'walk' : mode)}">route ↗</a></div><div class="place"><div class="num home">⌂</div><div class="body"><div class="name">Back to ${esc(st0.name)}</div></div></div>`;
+    h += legRow(G.leg(M, prevI, 0, prev, base, mode, set), prev, base);
+    h += `<div class="place tl-home"><div class="tl-time">${sched ? tcol(sched.end) : ''}</div><div class="num home">⌂</div><div class="body"><div class="name">Back to ${esc(st0.name)}</div></div></div>`;
   }
-  if (!d.places.length) h += '<div class="empty">No places yet for this day.</div>';
+  h += '</div>';
+  if (!d.places.length) h += '<div class="empty">No places yet for this day.<br>Add beaches, cafés, forts, viewpoints…</div>';
   h += `<div class="row" style="margin-top:14px"><button class="btn" data-act="addPlaces" data-d="${date}">＋ Add places</button></div></div>`;
-  return h;
+  return `<div class="plan-grid"><div class="plan-side">${side}</div><div class="plan-main">${h}</div></div>`;
 }
 
 /* ---------- actions ---------- */
-actions.pickDay = (el) => { st.day = el.dataset.d; rerender(); };
+actions.pickDay = (el) => { st.day = el.dataset.d; rerender(); animateIn(document.querySelector('.plan-grid')); };
 actions.setMode = (el) => { const d = dayOf(el.dataset.d); d.mode = el.dataset.m; saveDay(el.dataset.d, d); };
-actions.toggleDone = (el) => { const d = dayOf(el.dataset.d); const p = d.places[+el.dataset.i]; p.done = !p.done; saveDay(el.dataset.d, d); };
+actions.toggleDone = (el) => { const d = dayOf(el.dataset.d); const p = d.places[+el.dataset.i]; p.done = !p.done; st.flash = el.dataset.d + ':' + el.dataset.i; setTimeout(() => { st.flash = null; }, 700); saveDay(el.dataset.d, d); };
 actions.move = (el) => {
   const d = dayOf(el.dataset.d); const i = +el.dataset.i; const j = i + +el.dataset.dir;
   if (j < 0 || j >= d.places.length) return;

@@ -6,34 +6,52 @@ import * as G from '../geo.js';
 
 const KIND = { train: '🚆', bus: '🚌', flight: '✈️', ferry: '⛴️', other: '🧭' };
 
+function duration(t) {
+  if (!t.depDate || !t.depTime || !t.arrTime) return '';
+  const [y, m, d] = t.depDate.split('-').map(Number);
+  const [y2, m2, d2] = (t.arrDate || t.depDate).split('-').map(Number);
+  const [h1, n1] = t.depTime.split(':').map(Number), [h2, n2] = t.arrTime.split(':').map(Number);
+  let mins = Math.round((new Date(y2, m2 - 1, d2, h2, n2) - new Date(y, m - 1, d, h1, n1)) / 60000);
+  if (mins <= 0) mins += 1440; if (mins > 4 * 1440) return '';
+  return mins < 60 ? mins + ' min' : Math.floor(mins / 60) + ' h' + (mins % 60 ? ' ' + (mins % 60) + ' m' : '');
+}
+const tm = (x) => { if (!x) return '<span class="muted">--:--</span>'; const [a, b] = ft(x).split(' '); return `${a}<small>${b}</small>`; };
+
 export function trainCard(t) {
-  return `<div class="card" ${readOnly() ? '' : `data-act="editTrain" data-id="${t.id}"`} style="cursor:pointer">
-    <div class="row" style="justify-content:space-between"><b>${KIND[t.kind] || '🚆'} ${esc(t.label || 'Journey')}</b>${t.pnr ? `<span class="pill">PNR ${esc(t.pnr)}</span>` : ''}</div>
-    <div class="row" style="margin-top:8px;align-items:stretch;gap:12px;flex-wrap:nowrap"><div style="flex:1"><div class="tiny muted">FROM</div><b>${esc(t.from || '—')}</b><div class="small">${esc(fd(t.depDate))} ${esc(ft(t.depTime))}</div></div><div style="align-self:center;color:var(--sun);font-weight:700">→</div><div style="flex:1"><div class="tiny muted">TO</div><b>${esc(t.to || '—')}</b><div class="small">${esc(fd(t.arrDate))} ${esc(ft(t.arrTime))}</div></div></div>
-    ${t.seat ? `<div class="small" style="margin-top:8px">💺 ${esc(t.seat)}</div>` : ''}${t.note ? `<div class="small muted" style="margin-top:6px;white-space:pre-wrap">${esc(t.note)}</div>` : ''}
-    ${t.pnr && (t.kind || 'train') === 'train' ? `<div class="row" style="margin-top:10px"><button class="btn ghost sm" data-act="checkPnr" data-pnr="${esc(t.pnr)}">🔎 Check PNR status</button></div>` : ''}</div>`;
+  const dur = duration(t); const ic = KIND[t.kind] || '🚆';
+  return `<div class="card ticket" ${readOnly() ? '' : `data-act="editTrain" data-id="${t.id}"`}>
+    <div class="tk-top"><span class="tk-kind">${ic} ${esc(t.label || 'Journey')}</span>${t.pnr ? `<span class="pill">PNR ${esc(t.pnr)}</span>` : ''}</div>
+    <div class="tk-route">
+      <div class="tk-end"><div class="tk-time">${tm(t.depTime)}</div><div class="tk-stn">${esc(t.from || '—')}</div><div class="tk-date">${esc(fd(t.depDate))}</div></div>
+      <div class="tk-mid"><span class="tk-dur">${esc(dur)}</span><div class="tk-line"><i>${ic}</i></div></div>
+      <div class="tk-end r"><div class="tk-time">${tm(t.arrTime)}</div><div class="tk-stn">${esc(t.to || '—')}</div><div class="tk-date">${esc(fd(t.arrDate))}</div></div>
+    </div>
+    ${(t.seat || t.note || (t.pnr && (t.kind || 'train') === 'train')) ? `<div class="tk-perf"></div><div class="tk-bottom">
+      ${t.seat ? `<div class="tk-seat"><span class="tiny muted">SEAT</span><b>${esc(t.seat)}</b></div>` : ''}
+      ${t.note ? `<div class="small muted tk-note">${esc(t.note)}</div>` : ''}
+      ${t.pnr && (t.kind || 'train') === 'train' ? `<button class="btn ghost sm" data-act="checkPnr" data-pnr="${esc(t.pnr)}">🔎 Check PNR status</button>` : ''}</div>` : ''}
+  </div>`;
 }
 export function stayCard(s) {
+  const nights = s.checkIn ? Math.max(0, daysBetween(s.checkIn, s.checkOut || s.checkIn)) : 0;
   const loc = G.hasLL(s)
     ? `<a href="${G.placeLink(s)}" target="_blank" rel="noopener">📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)} — check pin ↗</a>`
-    : '<span class="pill sun">No location — tap to add</span>';
-  const nights = s.checkIn ? Math.max(0, daysBetween(s.checkIn, s.checkOut || s.checkIn)) : 0;
-  return `<div class="card" ${readOnly() ? '' : `data-act="editStay" data-id="${s.id}"`} style="cursor:pointer">
-    <div class="row" style="justify-content:space-between"><h3 style="font-size:18px">🛏 ${esc(s.name)}</h3>${s.ref ? `<span class="pill">${esc(s.ref)}</span>` : ''}</div>
-    <div class="small" style="margin-top:6px">${s.checkIn ? esc(fd(s.checkIn)) + ' → ' + esc(fd(s.checkOut)) + ' · ' + nights + ' night' + (nights === 1 ? '' : 's') : '<span class="muted">Add dates</span>'}</div>
-    ${s.address ? `<div class="small muted">${esc(s.address)}</div>` : ''}
-    <div class="row small" style="margin-top:8px">${loc}${s.phone ? `<span>📞 ${esc(s.phone)}</span>` : ''}</div>
+    : '<span class="pill sun">📍 No location — tap to add</span>';
+  return `<div class="card staycard" ${readOnly() ? '' : `data-act="editStay" data-id="${s.id}"`}>
+    <div class="sc-head"><div class="sc-ic">🛏</div><div style="flex:1;min-width:0"><h3>${esc(s.name)}</h3>${s.address ? `<div class="small muted">${esc(s.address)}</div>` : ''}</div>${s.ref ? `<span class="pill">${esc(s.ref)}</span>` : ''}</div>
+    ${s.checkIn ? `<div class="sc-dates"><div><span class="tiny muted">CHECK-IN</span><b>${esc(fd(s.checkIn))}</b></div><div class="sc-n">${nights} night${nights === 1 ? '' : 's'}</div><div class="r"><span class="tiny muted">CHECK-OUT</span><b>${esc(fd(s.checkOut))}</b></div></div>` : '<div class="small muted" style="margin-top:8px">Add check-in & check-out dates</div>'}
+    <div class="row small" style="margin-top:10px">${loc}${s.phone ? `<span>📞 ${esc(s.phone)}</span>` : ''}</div>
     ${s.note ? `<div class="small muted" style="margin-top:6px;white-space:pre-wrap">${esc(s.note)}</div>` : ''}</div>`;
 }
 
 export function vBookings() {
   const tr = trainsOf(), ss = staysOf();
   const gaps = tripDays().slice(0, -1).filter((dt) => !ss.some((x) => x.checkIn <= dt && dt < x.checkOut));
-  return `<div class="sec"><h2>Journeys</h2>${readOnly() ? '' : '<div class="row" style="flex-wrap:nowrap"><button class="btn ghost sm" data-act="pasteTicket">📋 Paste ticket</button><button class="btn sun sm" data-act="editTrain">＋ Add</button></div>'}</div>
+  return `<div class="bk-grid"><section><div class="sec"><h2>Journeys</h2>${readOnly() ? '' : '<div class="row" style="flex-wrap:nowrap"><button class="btn ghost sm" data-act="pasteTicket">📋 Paste ticket</button><button class="btn sun sm" data-act="editTrain">＋ Add</button></div>'}</div>
     ${tr.length ? tr.map(trainCard).join('') : `<div class="card empty">No journeys yet.${readOnly() ? '' : '<br><br>Booked on IRCTC? Paste the booking SMS or e-ticket email and Yatri fills in the details.<br><br><button class="btn sun" data-act="pasteTicket">📋 Paste my ticket</button>'}</div>`}
-    <div class="sec"><h2>Stays</h2>${readOnly() ? '' : '<button class="btn sun sm" data-act="editStay">＋ Add</button>'}</div>
+    </section><section><div class="sec"><h2>Stays</h2>${readOnly() ? '' : '<button class="btn sun sm" data-act="editStay">＋ Add</button>'}</div>
     ${gaps.length && ss.length ? `<div class="hint" style="margin-bottom:12px">No stay booked for the night of ${gaps.map((g) => esc(fd(g))).join(', ')}.</div>` : ''}
-    ${ss.length ? ss.map(stayCard).join('') : '<div class="card empty">No stays yet. Each day’s route starts from the place you’re staying that night.</div>'}`;
+    ${ss.length ? ss.map(stayCard).join('') : '<div class="card empty">No stays yet. Each day’s route starts from the place you’re staying that night.</div>'}</section></div>`;
 }
 
 actions.editTrain = (el) => openTrain(el.dataset.id, null);

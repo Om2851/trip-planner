@@ -1,7 +1,7 @@
 // Home: the user's trips, create/edit a trip, import the v1 Goa plan.
 import { st, actions, rerender, myId, myName, membersOf, patchTrip, APP_NAME } from '../store.js';
 import { cloud } from '../cloud.js';
-import { esc, fd, fdShort, todayIso, daysBetween, modal, closeModal, toast, randId, CURRENCIES, avatar, firstName } from '../ui.js';
+import { esc, fd, fdShort, todayIso, daysBetween, modal, closeModal, toast, randId, CURRENCIES, avatar, firstName, themeSeg } from '../ui.js';
 import * as G from '../geo.js';
 import { VIBES } from './bag.js';
 import { coverHtml, sceneSvg } from '../art.js';
@@ -24,12 +24,12 @@ export function vHome() {
   if (st.legacy && !imported) {
     h += `<div class="card hint-card"><b>Bring over your earlier plan?</b><div class="small muted" style="margin:4px 0 10px">We found “${esc((st.legacy.trip && st.legacy.trip.name) || 'Goa Trip')}” from the first version of the planner.</div><div class="row"><button class="btn sun sm" data-act="importLegacy">Import it</button><button class="btn line sm" data-act="dismissLegacy">No thanks</button></div></div>`;
   }
-  if (!st.tripsReady) h += '<div class="card empty">Loading your trips…</div>';
+  if (!st.tripsReady) h += '<div class="trip-grid">' + '<div class="sk-trip"><div class="shimmer"></div><i class="shimmer"></i><i class="shimmer" style="width:40%"></i></div>'.repeat(2) + '</div>';
   else if (!trips.length) h += `<div class="card empty-hero"><div class="eh-art">${sceneSvg('mountains')}</div><h2>Plan your first trip</h2><p class="muted">Add where you’re going and when. Then invite friends, build your packing list and track spending — all in one place.</p><button class="btn sun" data-act="newTrip">＋ New trip</button></div>`;
   else {
     h += `<div class="sec"><h2>Your trips</h2><button class="btn sun sm" data-act="newTrip">＋ New trip</button></div>`;
-    h += upcoming.map(tripCard).join('') || '<div class="card empty">No upcoming trips.</div>';
-    if (past.length) h += '<div class="sec"><h2 class="muted" style="font-size:16px">Past trips</h2></div>' + past.map(tripCard).join('');
+    h += upcoming.length ? '<div class="trip-grid">' + upcoming.map(tripCard).join('') + '</div>' : '<div class="card empty">No upcoming trips.</div>';
+    if (past.length) h += '<div class="sec"><h2 class="muted" style="font-size:16px">Past trips</h2></div><div class="trip-grid past">' + past.map(tripCard).join('') + '</div>';
   }
   return h + '</main>';
 }
@@ -89,7 +89,7 @@ export function tripForm(existing) {
 
 actions.newTrip = () => tripForm(null);
 actions.account = () => {
-  modal(`<h3>${esc(myName())}</h3><p class="small muted" style="margin-top:0">${esc(st.user.email || '')}</p><div class="row" style="justify-content:flex-end"><button class="btn line" data-x>Close</button><button class="btn danger" data-out>Sign out</button></div>`, (bg) => {
+  modal(`<h3>${esc(myName())}</h3><p class="small muted" style="margin-top:0">${esc(st.user.email || '')}</p><label>Appearance</label>${themeSeg()}<div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn line" data-x>Close</button><button class="btn danger" data-out>Sign out</button></div>`, (bg) => {
     bg.querySelector('[data-x]').onclick = closeModal;
     bg.querySelector('[data-out]').onclick = () => { closeModal(); cloud.signOut(); };
   });

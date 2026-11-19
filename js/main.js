@@ -1,7 +1,8 @@
 // Yatri — boot, routing, subscriptions and the page shell.
 import { st, actions, setRender, rerender, myId, myName, membersOf, T, APP_NAME } from './store.js';
 import { cloud } from './cloud.js';
-import { $, esc, fd, fdShort, toast, avatar, closeModal } from './ui.js';
+import { $, esc, fd, fdShort, toast, avatar, closeModal, applyTheme, animateIn } from './ui.js';
+applyTheme();
 import { vPlan } from './views/plan.js';
 import { vBookings } from './views/bookings.js';
 import { vBag } from './views/bag.js';
@@ -58,7 +59,7 @@ function route() {
   closeModal();
   const key = location.hash;
   rerender();
-  if (key !== lastRoute) { lastRoute = key; if (st.view === 'chat') chatAfterRender(true); else window.scrollTo(0, 0); }
+  if (key !== lastRoute) { lastRoute = key; if (st.view === 'chat') chatAfterRender(true); else { window.scrollTo(0, 0); animateIn(); } }
 }
 window.addEventListener('hashchange', route);
 
@@ -135,6 +136,7 @@ function welcome() {
       <p class="tiny muted" style="text-align:center;margin:20px 0 40px">${APP_NAME} — made for travellers. Place search & road data © OpenStreetMap contributors.</p>
     </main></div>`;
 }
+const skeletonTrip = () => `<div class="sk-hdr shimmer"></div><main class="wrap"><div class="sk-row"><i class="shimmer"></i><i class="shimmer"></i><i class="shimmer"></i></div><div class="sk-card shimmer"></div><div class="sk-card shimmer" style="height:260px"></div></main>`;
 const splash = (msg) => `<div class="splash"><div class="splash-art">${sceneSvg('sunset')}</div><div class="brand big-brand">${APP_NAME}</div><p>${esc(msg)}</p></div>`;
 
 function page() {
@@ -150,7 +152,7 @@ function page() {
   if (!st.tripId) return vHome();
   if (!st.trip) return st.tripMissing
     ? `<div class="splash"><h2>Trip not found</h2><p>It may have been deleted, or you’re no longer a member.</p><a class="btn sun" href="#/">Back to my trips</a></div>`
-    : splash('Opening trip…');
+    : skeletonTrip();
   const views = { plan: vPlan, bookings: vBookings, bag: vBag, money: vMoney, chat: vChat, trip: vSettings };
   return tripHeader(st.trip) + `<main class="wrap ${st.view === 'chat' ? 'chatmain' : ''}">${views[st.view]()}</main>` + nav([['plan', 'Plan'], ['bookings', 'Bookings'], ['bag', 'Bag'], ['money', 'Money'], ['chat', 'Chat']]);
 }

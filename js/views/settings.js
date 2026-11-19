@@ -1,7 +1,7 @@
 // Trip page: details, members & invites, view-only share link, transport costs, notes, leave/delete.
 import { st, actions, rerender, T, myId, membersOf, isGroup, settingsOf, patchTrip } from '../store.js';
 import { cloud } from '../cloud.js';
-import { esc, fd, form, toast, confirmTap, copyText, randId, avatar, money } from '../ui.js';
+import { esc, fd, form, toast, confirmTap, copyText, randId, avatar, money, themeSeg } from '../ui.js';
 import * as G from '../geo.js';
 import { tripForm } from './trips.js';
 import { coverHtml, sceneSvg, sceneFor, SCENE_KEYS, sceneLabel, compressImage } from '../art.js';
@@ -22,7 +22,8 @@ export function vSettings() {
     <div class="tiny muted" style="margin:12px 0 6px">SCENE</div><div class="scene-picks">
       <button data-act="setTheme" data-k="" class="${auto ? 'on' : ''}"><div>${sceneSvg(sceneFor({ ...t, theme: '' , cover: null }))}</div><span>✨ Auto</span></button>
       ${SCENE_KEYS.map((k) => `<button data-act="setTheme" data-k="${k}" class="${t.theme === k ? 'on' : ''}"><div>${sceneSvg(k)}</div><span>${sceneLabel(k)}</span></button>`).join('')}</div>
-    <div class="row" style="margin-top:12px"><label class="btn ghost sm" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--teal)">📷 ${t.cover ? 'Change' : 'Use my own'} cover photo<input type="file" accept="image/*" data-cover hidden></label>${t.cover ? '<button class="btn sm line" data-act="removeCover">Remove photo</button>' : ''}</div></div>`;
+    <div class="row" style="margin-top:12px"><label class="btn ghost sm" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--teal)">📷 ${t.cover ? 'Change' : 'Use my own'} cover photo<input type="file" accept="image/*" data-cover hidden></label>${t.cover ? '<button class="btn sm line" data-act="removeCover">Remove photo</button>' : ''}</div>
+    <div class="tiny muted" style="margin:14px 0 6px">APP THEME</div>${themeSeg()}</div>`;
 
   // members + invite
   h += `<div class="sec"><h2>${isGroup() ? 'Travellers' : 'Travelling with friends?'}</h2></div><div class="card">`;
@@ -56,7 +57,7 @@ export function vSettings() {
   h += `<div class="sec"><h2>Danger zone</h2></div><div class="card row" style="justify-content:space-between">${owner
     ? '<div class="small muted">Deletes the trip, chat, expenses and packing list for everyone.</div><button class="btn danger" data-act="deleteTrip">Delete trip</button>'
     : '<div class="small muted">You’ll lose access to this trip. Others keep it.</div><button class="btn danger" data-act="leaveTrip">Leave trip</button>'}</div>`;
-  return h;
+  return `<div class="set-cols">${h}</div>`;
 }
 
 /* ---------- actions ---------- */

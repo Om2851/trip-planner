@@ -73,6 +73,7 @@ export function vBag() {
   }
   h += `<div class="row" style="margin:6px 0 10px"><div class="seg">${[['mine', 'My bag'], ...(group ? [['shared', 'Shared']] : []), ['all', 'Everything']].map(([k, l]) => `<button data-act="bagFilter" data-f="${k}" class="${filter === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
   const byCat = {}; shown.forEach((i) => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
+  h += '<div class="bag-cols">';
   CATS.filter((c) => byCat[c]).concat(Object.keys(byCat).filter((c) => !CATS.includes(c))).forEach((c) => {
     const list = byCat[c]; const dn = list.filter(isPacked).length;
     h += `<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:4px"><b>${CAT_IC[c] || '📦'} ${esc(c)}</b><span class="tiny muted">${dn}/${list.length}</span></div>`;
@@ -80,10 +81,11 @@ export function vBag() {
       const packed = isPacked(it); const canTick = !it.shared || it.assignee === myId();
       let who = '';
       if (it.shared) who = it.assignee ? `<span class="tiny muted">🙋 ${it.assignee === myId() ? 'You bring' : esc(firstName(memberName(it.assignee))) + ' brings'}</span>` : `<button class="btn sm ghost" data-act="claimItem" data-id="${it.id}" style="padding:3px 8px;font-size:12px">I’ll bring it</button>`;
-      h += `<div class="check ${packed ? 'done' : ''}"><button class="box ${packed ? 'on' : ''}" ${canTick ? `data-act="tickItem" data-id="${it.id}"` : 'disabled'} aria-label="Packed">${packed ? '✓' : ''}</button><div class="lbl" data-act="editBagItem" data-id="${it.id}">${esc(it.name)}${it.qty > 1 ? ` <span class="muted">× ${it.qty}</span>` : ''}${it.shared ? ' <span class="pill" style="font-size:10px;padding:1px 6px">shared</span>' : ''}</div>${who}</div>`;
+      h += `<div class="check ${packed ? 'done' : ''}"><button class="box ${packed ? 'on' : ''}${st.flash === 'bag:' + it.id ? ' pop' : ''}" ${canTick ? `data-act="tickItem" data-id="${it.id}"` : 'disabled'} aria-label="Packed">${packed ? '✓' : ''}</button><div class="lbl" data-act="editBagItem" data-id="${it.id}">${esc(it.name)}${it.qty > 1 ? ` <span class="muted">× ${it.qty}</span>` : ''}${it.shared ? ' <span class="pill" style="font-size:10px;padding:1px 6px">shared</span>' : ''}</div>${who}</div>`;
     });
     h += '</div>';
   });
+  h += '</div>';
   if (!shown.length) h += '<div class="card empty">Nothing here.</div>';
   h += `<div class="row" style="margin-top:6px"><button class="btn" data-act="addBagItem">＋ Add item</button><button class="btn ghost" data-act="suggestBag">✨ Suggest more</button><button class="btn line" data-act="unpackAll">↺ Untick my bag</button></div>
     <div class="tiny muted" style="margin-top:8px">“Untick my bag” is handy for repacking before the journey home.</div>`;
@@ -98,6 +100,7 @@ actions.tickItem = (el) => {
   const who = it.shared ? it.assignee : myId(); if (!who) return;
   const v = !(it.packed || {})[who];
   it.packed = { ...(it.packed || {}), [who]: v }; // optimistic
+  st.flash = 'bag:' + it.id; setTimeout(() => { if (st.flash === 'bag:' + it.id) st.flash = null; }, 700);
   cloud.patchSub(st.tripId, 'packing', it.id, [[['packed', who], v]]);
   rerender();
 };

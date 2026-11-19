@@ -4,6 +4,7 @@ import { st, actions, T, myId, membersOf, isGroup, memberName, patchTrip } from 
 import { cloud } from '../cloud.js';
 import { esc, fd, fdShort, todayIso, money, round2, modal, closeModal, form, toast, firstName, avatar } from '../ui.js';
 
+export const ECOL = { food: '#ff8f6b', drinks: '#b49be0', stay: '#13707a', travel: '#f4bd55', activities: '#7fc29b', shopping: '#ff6f91', other: '#9fb3bd' };
 export const ECATS = { food: ['🍽️', 'Food'], drinks: ['🍹', 'Drinks'], stay: ['🛏️', 'Stay'], travel: ['🚕', 'Transport'], activities: ['🎟️', 'Activities'], shopping: ['🛍️', 'Shopping'], other: ['📦', 'Other'] };
 const cur = () => T().currency || 'INR';
 const M = (n) => money(n, cur());
@@ -46,7 +47,7 @@ export function vMoney() {
   const total = round2(spend.reduce((s, e) => s + e.amount, 0));
   const mine = round2(spend.reduce((s, e) => s + ((e.split || {})[me] || 0), 0));
   const budget = +trip.budget || 0;
-  let h = `<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="tiny muted">${group ? 'GROUP SPENT' : 'TOTAL SPENT'}</div><div class="big">${M(total)}</div>${group ? `<div class="small muted" style="margin-top:4px">Your share: <b>${M(mine)}</b></div>` : ''}</div><button class="btn sun" data-act="addExpense">＋ Expense</button></div>`;
+  let h = `<div class="money-grid"><div class="m-side"><div class="card money-hero"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="tiny muted">${group ? 'GROUP SPENT' : 'TOTAL SPENT'}</div><div class="big">${M(total)}</div>${group ? `<div class="small muted" style="margin-top:4px">Your share: <b>${M(mine)}</b></div>` : ''}</div><button class="btn sun" data-act="addExpense">＋ Expense</button></div>`;
   if (budget) {
     const used = group ? total : total; const p = Math.min(100, Math.round(used / budget * 100));
     h += `<div class="bar ${used > budget ? 'over' : ''}" style="margin-top:12px"><i style="width:${p}%"></i></div><div class="row tiny muted" style="justify-content:space-between;margin-top:4px"><span>Budget ${M(budget)}</span><span>${used > budget ? M(used - budget) + ' over' : M(budget - used) + ' left'}</span></div>`;
@@ -65,10 +66,9 @@ export function vMoney() {
 
   if (spend.length) {
     const byCat = {}; spend.forEach((e) => { byCat[e.cat || 'other'] = (byCat[e.cat || 'other'] || 0) + e.amount; });
-    const max = Math.max(...Object.values(byCat));
-    h += '<div class="sec"><h2>Where it went</h2></div><div class="card">' + Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => `<div class="catrow"><span>${(ECATS[c] || ECATS.other)[0]} ${(ECATS[c] || ECATS.other)[1]}</span><div class="bar thin" style="flex:1"><i style="width:${Math.round(v / max * 100)}%"></i></div><b>${M(v)}</b></div>`).join('') + '</div>';
+    h += `<div class="sec"><h2>Where it went</h2></div><div class="card where">${donut(byCat, total)}<div class="legend">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => `<div class="lg-row"><i style="background:${ECOL[c] || ECOL.other}"></i><span>${(ECATS[c] || ECATS.other)[0]} ${(ECATS[c] || ECATS.other)[1]}</span><b>${M(v)}</b><span class="tiny muted">${Math.round(v / total * 100)}%</span></div>`).join('')}</div></div>`;
   }
-
+  h += '</div><div class="m-main">';
   h += '<div class="sec"><h2>Expenses</h2></div>';
   if (!ex.length) h += `<div class="card empty">No expenses yet. ${group ? 'Add what anyone pays — Yatri works out who owes whom.' : 'Track what you spend each day.'}</div>`;
   let lastDate = null;
@@ -76,8 +76,9 @@ export function vMoney() {
     if (e.date !== lastDate) { lastDate = e.date; h += `<div class="tiny muted" style="margin:12px 2px 6px;font-weight:700">${esc(fd(e.date) || 'No date')}</div>`; }
     if (e.type === 'settle') { h += `<div class="card exp settle-row" data-act="editExpense" data-id="${e.id}"><div class="eic">🤝</div><div style="flex:1"><b>${esc(e.paidBy === me ? 'You' : firstName(memberName(e.paidBy)))} paid ${esc(e.to === me ? 'you' : firstName(memberName(e.to)))}</b><div class="tiny muted">Settlement</div></div><b>${M(e.amount)}</b></div>`; return; }
     const n = Object.keys(e.split || {}).length; const my = (e.split || {})[me] || 0;
-    h += `<div class="card exp" data-act="editExpense" data-id="${e.id}"><div class="eic">${(ECATS[e.cat] || ECATS.other)[0]}</div><div style="flex:1;min-width:0"><b>${esc(e.title || 'Expense')}</b><div class="tiny muted">${group ? `${esc(e.paidBy === me ? 'You' : firstName(memberName(e.paidBy)))} paid · ${n === mem.length ? 'split equally' : 'split ' + n + ' way' + (n === 1 ? '' : 's')}` : esc((ECATS[e.cat] || ECATS.other)[1])}</div></div><div style="text-align:right"><b>${M(e.amount)}</b>${group ? `<div class="tiny muted">you: ${M(my)}</div>` : ''}</div></div>`;
+    h += `<div class="card exp" data-act="editExpense" data-id="${e.id}"><div class="eic" style="--c:${ECOL[e.cat] || ECOL.other}">${(ECATS[e.cat] || ECATS.other)[0]}</div><div style="flex:1;min-width:0"><b>${esc(e.title || 'Expense')}</b><div class="tiny muted">${group ? `${esc(e.paidBy === me ? 'You' : firstName(memberName(e.paidBy)))} paid · ${n === mem.length ? 'split equally' : 'split ' + n + ' way' + (n === 1 ? '' : 's')}` : esc((ECATS[e.cat] || ECATS.other)[1])}</div></div><div style="text-align:right"><b>${M(e.amount)}</b>${group ? `<div class="tiny muted">you: ${M(my)}</div>` : ''}</div></div>`;
   });
+  h += '</div></div>';
   return h;
 }
 
@@ -159,5 +160,13 @@ function editExpense(e) {
       closeModal();
     };
   });
+}
+function donut(byCat, total) {
+  const R = 52, C = 2 * Math.PI * R; let off = 0;
+  const segs = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => {
+    const len = total ? v / total * C : 0; const seg = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${ECOL[c] || ECOL.other}" stroke-width="18" stroke-dasharray="${Math.max(0, len - 2).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+    off += len; return seg;
+  }).join('');
+  return `<svg viewBox="0 0 140 140" class="donut"><circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--bg2)" stroke-width="18"/>${segs}<text x="70" y="66" text-anchor="middle" class="d-lbl">spent</text><text x="70" y="86" text-anchor="middle" class="d-val">${esc(M(total))}</text></svg>`;
 }
 function sameAsEqual(e) { const uids = Object.keys(e.split || {}); const eq = equalSplit(e.amount, uids); return uids.every((u) => Math.abs(eq[u] - e.split[u]) < 0.01); }

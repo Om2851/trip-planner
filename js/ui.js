@@ -118,3 +118,31 @@ export async function copyText(t) {
   try { await navigator.clipboard.writeText(t); toast('Copied'); }
   catch (e) { modal(`<h3>Copy this</h3><textarea style="min-height:120px">${esc(t)}</textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-x>Close</button></div>`, (bg) => { bg.querySelector('[data-x]').onclick = closeModal; const ta = bg.querySelector('textarea'); ta.focus(); ta.select(); }); }
 }
+
+/* ---------- theme (auto / light / dark) ---------- */
+const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+export const themePref = () => { try { return localStorage.getItem('yatri.theme') || 'auto'; } catch (e) { return 'auto'; } };
+export function applyTheme(pref) {
+  if (pref) { try { localStorage.setItem('yatri.theme', pref); } catch (e) { /* */ } }
+  const p = themePref(); const dark = p === 'dark' || (p === 'auto' && mq && mq.matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = dark ? '#0f1a20' : '#0f5b66';
+}
+if (mq && mq.addEventListener) mq.addEventListener('change', () => applyTheme());
+export const themeSeg = () => `<div class="seg theme-seg">${[['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(([k, l]) => `<button type="button" data-theme-pick="${k}" class="${themePref() === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-theme-pick]'); if (!b) return;
+  applyTheme(b.dataset.themePick);
+  document.querySelectorAll('[data-theme-pick]').forEach((x) => x.classList.toggle('on', x.dataset.themePick === b.dataset.themePick));
+});
+
+/* ---------- entrance animation (only on navigation, not on live updates) ---------- */
+export function animateIn(root) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  root = root || document.querySelector('#app main'); if (!root || !root.animate) return;
+  const ease = 'cubic-bezier(.2,.75,.25,1)';
+  root.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: ease });
+  [...root.querySelectorAll('.card, .daystrip button')].slice(0, 12).forEach((c, i) => c.animate(
+    [{ opacity: 0, transform: 'translateY(14px) scale(.985)' }, { opacity: 1, transform: 'none' }],
+    { duration: 420, delay: 30 + i * 40, easing: ease, fill: 'backwards' }));
+}
